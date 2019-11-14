@@ -53,9 +53,12 @@ int main()
             // Step 1a: Open the file and read each line for the week's sea ice concentrations.
             ifstream inputFile(pathName, ios::in | ios::binary);
             float dataIn = 0;
-            for (int k = 0; k < 63; k++) // (k,l) are the cells
+            int Xcount = 0;
+            int Ycount = 0;
+
+            while (Ycount < 63)
             {
-                for (int l = 0; l < 63; l++)
+                while (Xcount < 63)
                 {
                     inputFile.read((char *)&dataIn, 4);
 
@@ -64,75 +67,101 @@ int main()
                     newNode->sic = dataIn;
                     newNode->next = NULL;
 
-                    if (landmask[k][l].readings == NULL)
+                    if (landmask[Ycount][Xcount].readings == NULL)
                     {
-                        landmask[k][l].readings = newNode;
+                        landmask[Ycount][Xcount].readings = newNode;
                     }
                     else
                     {
-                        newNode->next = landmask[k][l].readings;
-                        landmask[k][l].readings = newNode;
+                        newNode->next = landmask[Ycount][Xcount].readings;
+                        landmask[Ycount][Xcount].readings = newNode;
                     }
+
+                    Xcount++;
                 }
+
+                Xcount = 0;
+                Ycount++;
             }
+
             inputFile.close();
         }
     }
 
-    // for (int k = 62; k >= 0; k--) // (k,l) are the cells
-    // {
-    //     for (int l = 62; l >= 0; l--)
-    //     {
-    //         sicNode *trav = landmask[k][l].readings;
-    //         while (trav != NULL)
-    //         {
-    //             cout << trav->sic << " ";
-    //             trav = trav->next;
-    //         }
-    //     }
-    //     cout << endl;
-    // }
-
-    // Step 2: Make the adjacency-list graph for each threshold.
-    int adjListSize = 63 * 63; // 63 x 63 landmask
-    int adjList[adjListSize];
-
-    double threshold = 0.95;
-
-    // Step 2a: Compute the correlation between every point to every other point.
-    for (int k = 0; k < 63; k++) // (k,l) are the cells
+    for (int k = 62; k >= 0; k--) // (k,l) are the cells
     {
-        for (int l = k; l < 63; l++)
+        for (int l = 62; l >= 0; l--)
         {
-            // Compute the correlation.
-            int upperBound = 1 * 52; // number of Years * 52
-
-            int Xi;
-            int Yi;
-
-            int Xmean;
-            int Ymean;
-
-            // Step 1: Compute Sxx
-            int Sxx = 0;
-
-            for (int i = 0; i < upperBound; i++)
+            cout << "Cell (" << k << "," << l << ") : ";
+            sicNode *trav = landmask[k][l].readings;
+            while (trav != NULL)
             {
-                sicNode *trav = landmask[k][l].readings;
-                while (trav != NULL)
-                {
-                    Sxx += trav.sic;
-                    trav = trav->next;
-                }
+                cout << trav->sic << " ";
+                trav = trav->next;
             }
 
-            // Step 2: Compute Syy
-
-            // Step 3: Compute Sxy
-
-            // Step 4: Plug into the formula.
+            cout << endl;
         }
+        cout << endl;
     }
+
+    // // Step 2: Make the adjacency-list graph for each threshold.
+    // int adjListSize = 63 * 63; // 63 x 63 landmask
+    // int adjList[adjListSize];
+
+    // double threshold = 0.95;
+
+    // // Step 2a: Compute the correlation between every point to every other point.
+    // for (int k = 0; k < 63; k++)
+    // {
+    //     for (int l = k; l < 63; l++) // For each (k,l) cell
+    //     {
+    //         // Compute the correlation.
+    //         int upperBound = 1 * 52; // number of Years * 52 = How many data points are in one point?
+
+    //         // Step 1: Compute Sxx
+    //         float Sxx;
+    //         float xMean; // Sum values of Xi / number of values of Xi
+    //         float Xi;
+
+    //         for (int i = 0; i < upperBound; i++) // For each data point in the cell
+    //         {
+    //             float xTotal = 0;
+    //             float xSum = 0;
+
+    //             sicNode *trav = landmask[k][l].readings;
+    //             while (trav != NULL) // Read each SIC concentration level
+    //             {
+    //                 if (trav->sic != 168 && trav->sic != 157)
+    //                 {
+    //                     xSum += trav->sic;
+    //                     xTotal++;
+    //                 }
+
+    //                 trav = trav->next;
+    //             }
+
+    //             xMean = xSum / xTotal;
+
+    //             trav = landmask[k][l].readings;
+    //             while (trav != NULL)
+    //             {
+    //                 if (trav->sic != 168 && trav->sic != 157)
+    //                 {
+    //                     Sxx += (trav->sic - xMean) * (trav->sic - xMean);
+    //                 }
+
+    //                 trav = trav->next;
+    //             }
+    //         }
+
+    //         // Step 2: Compute Syy
+
+    //         // Step 3: Compute Sxy
+
+    //         // Step 4: Plug into the formula.
+    //     }
+    // }
 
     // Step 2b: If that correlation is above the threshold, add an edge.
 

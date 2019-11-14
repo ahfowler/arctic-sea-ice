@@ -1,7 +1,7 @@
 // Components for storing SICs
 struct sicNode
 {
-    int sic;
+    float sic;
     sicNode *next;
 };
 
