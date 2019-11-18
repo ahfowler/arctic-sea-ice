@@ -1,3 +1,5 @@
+#include <vector>
+
 // Components for storing SICs
 struct sicNode
 {
@@ -7,7 +9,7 @@ struct sicNode
 
 struct cell
 {
-    sicNode *readings;
+    std::vector<int> readings;
 };
 
 // Components for building the graph

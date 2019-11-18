@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include "defn.h"
+#include <vector>
 
 using namespace std;
 
@@ -24,7 +25,6 @@ int main()
         for (int l = 0; l < 63; l++)
         {
             cell *newCell = new cell();
-            newCell->readings = NULL;
             landmask[k][l] = *newCell;
         }
     }
@@ -63,19 +63,8 @@ int main()
                     inputFile.read((char *)&dataIn, 4);
 
                     // Step 1b: Store the sea ice concentration as a node in a linked list for each point.
-                    sicNode *newNode = new sicNode();
-                    newNode->sic = dataIn;
-                    newNode->next = NULL;
 
-                    if (landmask[Ycount][Xcount].readings == NULL)
-                    {
-                        landmask[Ycount][Xcount].readings = newNode;
-                    }
-                    else
-                    {
-                        newNode->next = landmask[Ycount][Xcount].readings;
-                        landmask[Ycount][Xcount].readings = newNode;
-                    }
+                    landmask[Ycount][Xcount].readings.push_back(dataIn);
 
                     Xcount++;
                 }
@@ -88,18 +77,15 @@ int main()
         }
     }
 
-    for (int k = 62; k >= 0; k--) // (k,l) are the cells
+    for (int k = 0; k < 62; k++) // (k,l) are the cells
     {
-        for (int l = 62; l >= 0; l--)
+        for (int l = 0; l < 62; l++)
         {
             cout << "Cell (" << k << "," << l << ") : ";
-            sicNode *trav = landmask[k][l].readings;
-            while (trav != NULL)
+            for (int m = 0; m < 52 * 2; m++)
             {
-                cout << trav->sic << " ";
-                trav = trav->next;
+                cout << landmask[k][l].readings[m] << " ";
             }
-
             cout << endl;
         }
         cout << endl;
