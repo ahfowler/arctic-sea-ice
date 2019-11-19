@@ -4,6 +4,7 @@
 #include <iostream>
 #include "defn.h"
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -62,7 +63,7 @@ int main()
                 {
                     inputFile.read((char *)&dataIn, 4);
 
-                    // Step 1b: Store the sea ice concentration as a node in a linked list for each point.
+                    // Step 1b: Store the sea ice concentration in the cell's readings.
 
                     landmask[Ycount][Xcount].readings.push_back(dataIn);
 
@@ -77,79 +78,154 @@ int main()
         }
     }
 
-    for (int k = 0; k < 62; k++) // (k,l) are the cells
+    // for (int k = 0; k < 63; k++) // (k,l) are the cells
+    // {
+    //     for (int l = 0; l < 63; l++)
+    //     {
+    //         cout << "Cell (" << k << "," << l << ") : ";
+    //         for (int m = 0; m < 52 * 2; m++) // 52 * number of Years
+    //         {
+    //             cout << landmask[k][l].readings[m] << " ";
+    //         }
+    //         cout << endl;
+    //     }
+    //     cout << endl;
+    // }
+
+    // Step 2: Make the adjacency-list graph for each threshold.
+    int adjListSize = 63 * 63; // 63 x 63 landmask
+    vertexNode *adjList[adjListSize];
+    fill_n(adjList, adjListSize, nullptr);
+
+    float threshold = 0.95;
+
+    // Step 2a: Compute the correlation between every point to every other point.
+
+    // Compute all the means
+    for (int index = 0; index < adjListSize; index++)
     {
-        for (int l = 0; l < 62; l++)
+        // Compute the mean of each vertex
+
+        float sum = 0;
+        int numberOfReadings = 0;
+
+        for (int j = 0; j < landmask[index / 63][index % 63].readings.size(); j++)
         {
-            cout << "Cell (" << k << "," << l << ") : ";
-            for (int m = 0; m < 52 * 2; m++)
+            if (landmask[index / 63][index % 63].readings[j] != 157 && landmask[index / 63][index % 63].readings[j] != 168)
             {
-                cout << landmask[k][l].readings[m] << " ";
+                sum += landmask[index / 63][index % 63].readings[j];
+                numberOfReadings++;
             }
-            cout << endl;
+        }
+
+        if (numberOfReadings != 0)
+        {
+            float mean = sum / numberOfReadings;
+            landmask[index / 63][index % 63].mean = mean;
+        }
+        else
+        {
+            landmask[index / 63][index % 63].mean = std::numeric_limits<float>::quiet_NaN();
+        }
+
+        // cout << "Cell ( " << index / 63 << ", " << index % 63 << ") mean : " << landmask[index / 63][index % 63].mean << endl;
+    }
+
+    for (int vertex = 0; vertex < 50; vertex++)
+    { // adjListSize = # of vertices
+        // Step 1: Compute Sxx
+        cell vertexCell = landmask[vertex / 63][vertex % 63];
+
+        // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") vertex mean : " << vertexCell.mean << endl;
+
+        if (!isnan(vertexCell.mean))
+        { // This is a valid cell.
+            // cout << "Xmean: " << Xmean << endl;
+            float Sxx;
+
+            for (int i = 0; i < vertexCell.readings.size(); i++)
+            {
+                if (vertexCell.readings[i] != 157 && vertexCell.readings[i] != 168)
+                {                                                                                                   // If it is not missing,
+                    Sxx += (vertexCell.readings[i] - vertexCell.mean) * (vertexCell.readings[i] - vertexCell.mean); // Add to Sxx summation
+                }
+            }
+
+            // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") Sxx : " << Sxx << endl;
+
+            // Find edges in the rest of the graph
+            for (int comparingVertex = vertex + 1; comparingVertex < adjListSize; comparingVertex++)
+            {
+                // Step 2: Compute Syy
+                cell comparingVertexCell = landmask[comparingVertex / 63][comparingVertex % 63];
+                if (!isnan(comparingVertexCell.mean))
+                { // This a valid cell to compare to.
+                    // cout << "Ymean: " << Ymean << endl;
+                    float Syy;
+
+                    for (int k = 0; k < comparingVertexCell.readings.size(); k++)
+                    {
+                        if (comparingVertexCell.readings[k] != 157 && comparingVertexCell.readings[k] != 168)
+                        {                                                                                                                                       // If it is not missing,
+                            Syy += (comparingVertexCell.readings[k] - comparingVertexCell.mean) * (comparingVertexCell.readings[k] - comparingVertexCell.mean); // Add to Syy summation
+                        }
+                    }
+
+                    // cout << "Cell ( " << comparingVertex / 63 << ", " << comparingVertex % 63 << ") Syy : " << Syy << endl;
+
+                    // Step 3: Compute Sxy
+                    float Sxy; // Both are valid cells!
+                    for (int j = 0; j < vertexCell.readings.size(); j++)
+                    {
+                        if (comparingVertexCell.readings[j] != 157 && comparingVertexCell.readings[j] != 168 && vertexCell.readings[j] != 157 && vertexCell.readings[j] != 168)
+                        {                                                                                                                     // If it is not missing,
+                            Sxy += (vertexCell.readings[j] - vertexCell.mean) * (comparingVertexCell.readings[j] - comparingVertexCell.mean); // Add to Sxy summation
+                        }
+                    }
+
+                    // cout << "Sxy : " << Sxy << endl;
+
+                    // Step 4: Plug into the formula.
+                    float coorelation;
+                    if (!isnan(Sxy) && !isnan(Sxx) && !isnan(Syy))
+                    {
+                        coorelation = Sxy / sqrt(Sxx * Syy);
+                        // cout << "Coorelation : " << coorelation << endl;
+                    }
+                    else
+                    {
+                        coorelation = 0;
+                    }
+
+                    // Step 2b: If that correlation is above the threshold, add an edge.
+                    if (abs(coorelation) > threshold)
+                    {
+                        addEdge(adjList, vertex, comparingVertex);
+                    }
+                }
+                else
+                {
+                    // This is not a valid cell, just skip it.
+                }
+            }
+        }
+        else
+        {
+            // This is not a valid cell, just skip it.
+        }
+    }
+
+    for (int i = 0; i < adjListSize; i++)
+    {
+        cout << "(" << i / 63 << ", " << i % 63 << ") : ";
+        vertexNode *trav = adjList[i];
+        while (trav != nullptr)
+        {
+            cout << "(" << trav->xCoordinate << ", " << trav->yCoordinate << "), ";
+            trav = trav->next;
         }
         cout << endl;
     }
-
-    // // Step 2: Make the adjacency-list graph for each threshold.
-    // int adjListSize = 63 * 63; // 63 x 63 landmask
-    // int adjList[adjListSize];
-
-    // double threshold = 0.95;
-
-    // // Step 2a: Compute the correlation between every point to every other point.
-    // for (int k = 0; k < 63; k++)
-    // {
-    //     for (int l = k; l < 63; l++) // For each (k,l) cell
-    //     {
-    //         // Compute the correlation.
-    //         int upperBound = 1 * 52; // number of Years * 52 = How many data points are in one point?
-
-    //         // Step 1: Compute Sxx
-    //         float Sxx;
-    //         float xMean; // Sum values of Xi / number of values of Xi
-    //         float Xi;
-
-    //         for (int i = 0; i < upperBound; i++) // For each data point in the cell
-    //         {
-    //             float xTotal = 0;
-    //             float xSum = 0;
-
-    //             sicNode *trav = landmask[k][l].readings;
-    //             while (trav != NULL) // Read each SIC concentration level
-    //             {
-    //                 if (trav->sic != 168 && trav->sic != 157)
-    //                 {
-    //                     xSum += trav->sic;
-    //                     xTotal++;
-    //                 }
-
-    //                 trav = trav->next;
-    //             }
-
-    //             xMean = xSum / xTotal;
-
-    //             trav = landmask[k][l].readings;
-    //             while (trav != NULL)
-    //             {
-    //                 if (trav->sic != 168 && trav->sic != 157)
-    //                 {
-    //                     Sxx += (trav->sic - xMean) * (trav->sic - xMean);
-    //                 }
-
-    //                 trav = trav->next;
-    //             }
-    //         }
-
-    //         // Step 2: Compute Syy
-
-    //         // Step 3: Compute Sxy
-
-    //         // Step 4: Plug into the formula.
-    //     }
-    // }
-
-    // Step 2b: If that correlation is above the threshold, add an edge.
 
     // Step 3: Compute the degrees of each vertex.
 
