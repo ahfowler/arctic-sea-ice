@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <iostream>
-#include "defn.h"
+#include "dfs.h"
 #include <vector>
 #include <cmath>
 
@@ -94,140 +94,188 @@ int main()
 
     // Step 2: Make the adjacency-list graph for each threshold.
     int adjListSize = 63 * 63; // 63 x 63 landmask
-    vertexNode *adjList[adjListSize];
-    fill_n(adjList, adjListSize, nullptr);
+    vertexNode *adjList = NULL;
+    adjList = new vertexNode[adjListSize];
+    // fill_n(adjList, adjListSize, NULL);
 
-    float threshold = 0.95;
+    float thresholds[3] = {0.95, 0.925, 0.9};
 
     // Step 2a: Compute the correlation between every point to every other point.
-
-    // Compute all the means
-    for (int index = 0; index < adjListSize; index++)
+    for (int threshIndex = 0; threshIndex < 1; threshIndex++)
     {
-        // Compute the mean of each vertex
-
-        float sum = 0;
-        int numberOfReadings = 0;
-
-        for (int j = 0; j < landmask[index / 63][index % 63].readings.size(); j++)
+        float threshold = thresholds[threshIndex];
+        // Compute all the means and fill adjList
+        for (int index = 0; index < adjListSize; index++)
         {
-            if (landmask[index / 63][index % 63].readings[j] != 157 && landmask[index / 63][index % 63].readings[j] != 168)
+            // Compute the mean of each vertex
+            float sum = 0;
+            int numberOfReadings = 0;
+
+            for (int j = 0; j < landmask[index / 63][index % 63].readings.size(); j++)
             {
-                sum += landmask[index / 63][index % 63].readings[j];
-                numberOfReadings++;
-            }
-        }
-
-        if (numberOfReadings != 0)
-        {
-            float mean = sum / numberOfReadings;
-            landmask[index / 63][index % 63].mean = mean;
-        }
-        else
-        {
-            landmask[index / 63][index % 63].mean = std::numeric_limits<float>::quiet_NaN();
-        }
-
-        // cout << "Cell ( " << index / 63 << ", " << index % 63 << ") mean : " << landmask[index / 63][index % 63].mean << endl;
-    }
-
-    for (int vertex = 0; vertex < 50; vertex++)
-    { // adjListSize = # of vertices
-        // Step 1: Compute Sxx
-        cell vertexCell = landmask[vertex / 63][vertex % 63];
-
-        // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") vertex mean : " << vertexCell.mean << endl;
-
-        if (!isnan(vertexCell.mean))
-        { // This is a valid cell.
-            // cout << "Xmean: " << Xmean << endl;
-            float Sxx;
-
-            for (int i = 0; i < vertexCell.readings.size(); i++)
-            {
-                if (vertexCell.readings[i] != 157 && vertexCell.readings[i] != 168)
-                {                                                                                                   // If it is not missing,
-                    Sxx += (vertexCell.readings[i] - vertexCell.mean) * (vertexCell.readings[i] - vertexCell.mean); // Add to Sxx summation
+                if (landmask[index / 63][index % 63].readings[j] != 157 && landmask[index / 63][index % 63].readings[j] != 168)
+                {
+                    sum += landmask[index / 63][index % 63].readings[j];
+                    numberOfReadings++;
                 }
             }
 
-            // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") Sxx : " << Sxx << endl;
-
-            // Find edges in the rest of the graph
-            for (int comparingVertex = vertex + 1; comparingVertex < adjListSize; comparingVertex++)
+            if (numberOfReadings != 0)
             {
-                // Step 2: Compute Syy
-                cell comparingVertexCell = landmask[comparingVertex / 63][comparingVertex % 63];
-                if (!isnan(comparingVertexCell.mean))
-                { // This a valid cell to compare to.
-                    // cout << "Ymean: " << Ymean << endl;
-                    float Syy;
+                float mean = sum / numberOfReadings;
+                landmask[index / 63][index % 63].mean = mean;
+            }
+            else
+            {
+                landmask[index / 63][index % 63].mean = std::numeric_limits<float>::quiet_NaN();
+            }
 
-                    for (int k = 0; k < comparingVertexCell.readings.size(); k++)
-                    {
-                        if (comparingVertexCell.readings[k] != 157 && comparingVertexCell.readings[k] != 168)
-                        {                                                                                                                                       // If it is not missing,
-                            Syy += (comparingVertexCell.readings[k] - comparingVertexCell.mean) * (comparingVertexCell.readings[k] - comparingVertexCell.mean); // Add to Syy summation
-                        }
+            // Create vertex cell for adjacency list.
+            vertexNode *newVertex = new vertexNode();
+            newVertex->xCoordinate = index / 63;
+            newVertex->yCoordinate = index % 63;
+            newVertex->next = NULL;
+            newVertex->index = index;
+
+            adjList[index] = *newVertex;
+
+            // cout << "Cell ( " << index / 63 << ", " << index % 63 << ") mean : " << landmask[index / 63][index % 63].mean << endl;
+        }
+
+        for (int vertex = 0; vertex < adjListSize; vertex++)
+        {
+            // Step 1: Compute Sxx
+            cell vertexCell = landmask[vertex / 63][vertex % 63];
+
+            // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") vertex mean : " << vertexCell.mean << endl;
+
+            if (!isnan(vertexCell.mean))
+            { // This is a valid cell.
+                // cout << "Xmean: " << Xmean << endl;
+                float Sxx = 0;
+
+                for (int i = 0; i < vertexCell.readings.size(); i++)
+                {
+                    if (vertexCell.readings[i] != 157 && vertexCell.readings[i] != 168)
+                    {                                                                                                   // If it is not missing,
+                        Sxx += (vertexCell.readings[i] - vertexCell.mean) * (vertexCell.readings[i] - vertexCell.mean); // Add to Sxx summation
                     }
+                }
 
-                    // cout << "Cell ( " << comparingVertex / 63 << ", " << comparingVertex % 63 << ") Syy : " << Syy << endl;
+                // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") Sxx : " << Sxx << endl;
 
-                    // Step 3: Compute Sxy
-                    float Sxy; // Both are valid cells!
-                    for (int j = 0; j < vertexCell.readings.size(); j++)
-                    {
-                        if (comparingVertexCell.readings[j] != 157 && comparingVertexCell.readings[j] != 168 && vertexCell.readings[j] != 157 && vertexCell.readings[j] != 168)
-                        {                                                                                                                     // If it is not missing,
-                            Sxy += (vertexCell.readings[j] - vertexCell.mean) * (comparingVertexCell.readings[j] - comparingVertexCell.mean); // Add to Sxy summation
+                // Find edges in the rest of the graph
+                for (int comparingVertex = vertex + 1; comparingVertex < adjListSize; comparingVertex++)
+                {
+                    // Step 2: Compute Syy
+                    cell comparingVertexCell = landmask[comparingVertex / 63][comparingVertex % 63];
+
+                    if (!isnan(comparingVertexCell.mean))
+                    { // This a valid cell to compare to.
+                        // cout << "Ymean: " << Ymean << endl;
+                        float Syy = 0;
+
+                        for (int k = 0; k < comparingVertexCell.readings.size(); k++)
+                        {
+                            if (comparingVertexCell.readings[k] != 157 && comparingVertexCell.readings[k] != 168)
+                            {                                                                                                                                       // If it is not missing,
+                                Syy += (comparingVertexCell.readings[k] - comparingVertexCell.mean) * (comparingVertexCell.readings[k] - comparingVertexCell.mean); // Add to Syy summation
+                            }
                         }
-                    }
 
-                    // cout << "Sxy : " << Sxy << endl;
+                        // cout << "Cell ( " << comparingVertex / 63 << ", " << comparingVertex % 63 << ") Syy : " << Syy << endl;
 
-                    // Step 4: Plug into the formula.
-                    float coorelation;
-                    if (!isnan(Sxy) && !isnan(Sxx) && !isnan(Syy))
-                    {
-                        coorelation = Sxy / sqrt(Sxx * Syy);
-                        // cout << "Coorelation : " << coorelation << endl;
+                        // Step 3: Compute Sxy
+                        float Sxy = 0; // Both are valid cells!
+                        for (int j = 0; j < vertexCell.readings.size(); j++)
+                        {
+                            if (comparingVertexCell.readings[j] != 157 && comparingVertexCell.readings[j] != 168 && vertexCell.readings[j] != 157 && vertexCell.readings[j] != 168)
+                            {                                                                                                                     // If it is not missing,
+                                Sxy += (vertexCell.readings[j] - vertexCell.mean) * (comparingVertexCell.readings[j] - comparingVertexCell.mean); // Add to Sxy summation
+                            }
+                        }
+
+                        // cout << "Sxy : " << Sxy << endl;
+
+                        // Step 4: Plug into the formula.
+                        float coorelation = Sxy / sqrt(Sxx * Syy);
+                        // cout << "Coorelation: " << abs(coorelation) << endl;
+
+                        // Step 2b: If that correlation is above the threshold, add an edge.
+                        if (abs(coorelation) > threshold)
+                        {
+                            addEdge(adjList, vertex, comparingVertex);
+                        }
                     }
                     else
                     {
-                        coorelation = 0;
+                        // This is not a valid cell, just skip it.
                     }
-
-                    // Step 2b: If that correlation is above the threshold, add an edge.
-                    if (abs(coorelation) > threshold)
-                    {
-                        addEdge(adjList, vertex, comparingVertex);
-                    }
-                }
-                else
-                {
-                    // This is not a valid cell, just skip it.
                 }
             }
+            else
+            {
+                // This is not a valid cell, just skip it.
+            }
         }
-        else
-        {
-            // This is not a valid cell, just skip it.
-        }
+
+        // for (int i = 0; i < adjListSize; i++)
+        // {
+        //     vertexNode *trav = &adjList[i];
+        //     cout << "(" << trav->xCoordinate << ", " << trav->yCoordinate << ") : ";
+        //     while (trav->next != NULL)
+        //     {
+        //         cout << "(" << trav->next->xCoordinate << ", " << trav->next->yCoordinate << "), ";
+        //         trav = trav->next;
+        //     }
+        //     cout << endl;
+        // }
+
+        // Step 3: Compute the degrees of each vertex.
+        // vector<int> degrees(1, 0);
+
+        // for (int i = 0; i < adjListSize; i++)
+        // {
+        //     int numOfDegrees = 0;
+        //     vertexNode trav = adjList[i];
+
+        //     while (trav.next != NULL)
+        //     {
+        //         numOfDegrees++;
+        //         trav = *trav.next;
+        //     }
+
+        //     if (numOfDegrees > (degrees.size() - 1))
+        //     {
+        //         degrees.resize(numOfDegrees + 1, 0);
+        //     }
+
+        //     degrees[numOfDegrees] += 1;
+        //     // cout << numOfDegrees << endl;
+        //     // cout << degrees[numOfDegrees] << endl;
+        // }
+
+        // cout << "Threshold Histogram: " << threshold << endl;
+
+        // for (int i = 0; i < degrees.size(); i++)
+        // {
+        //     cout << i << ": ";
+        //     for (int j = 0; j < degrees[i]; j++)
+        //     {
+        //         cout << "* ";
+        //     }
+        //     cout << endl;
+        // }
+        // cout << endl;
+
+        // Step 4: Do a recursive depth-first traversal to compute the number of "trees" and their size.
+        dfs(adjList, adjListSize);
+
+        // for (int i = 0; i < adjListSize; i++)
+        // {
+        //     vertexNode *trav = &adjList[i];
+        //     cout << "(" << trav->xCoordinate << ", " << trav->yCoordinate << ") : " << trav->color << endl;
+        //     trav = trav->next;
+        // }
     }
-
-    for (int i = 0; i < adjListSize; i++)
-    {
-        cout << "(" << i / 63 << ", " << i % 63 << ") : ";
-        vertexNode *trav = adjList[i];
-        while (trav != nullptr)
-        {
-            cout << "(" << trav->xCoordinate << ", " << trav->yCoordinate << "), ";
-            trav = trav->next;
-        }
-        cout << endl;
-    }
-
-    // Step 3: Compute the degrees of each vertex.
-
-    // Step 4: Do a recursive depth-first traversal to compute the number of "trees" and their size.
 }
