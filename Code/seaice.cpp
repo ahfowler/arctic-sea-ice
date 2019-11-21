@@ -101,7 +101,7 @@ int main()
     float thresholds[3] = {0.95, 0.925, 0.9};
 
     // Step 2a: Compute the correlation between every point to every other point.
-    for (int threshIndex = 0; threshIndex < 1; threshIndex++)
+    for (int threshIndex = 0; threshIndex < 3; threshIndex++)
     {
         float threshold = thresholds[threshIndex];
         // Compute all the means and fill adjList
@@ -136,6 +136,15 @@ int main()
             newVertex->yCoordinate = index % 63;
             newVertex->next = NULL;
             newVertex->index = index;
+
+            if (landmask[index / 63][index % 63].readings[0] == 168)
+            {
+                newVertex->land = true;
+            }
+            else
+            {
+                newVertex->land = false;
+            }
 
             adjList[index] = *newVertex;
 
@@ -232,43 +241,45 @@ int main()
         // }
 
         // Step 3: Compute the degrees of each vertex.
-        // vector<int> degrees(1, 0);
+        vector<int> degrees(1, 0);
 
-        // for (int i = 0; i < adjListSize; i++)
-        // {
-        //     int numOfDegrees = 0;
-        //     vertexNode trav = adjList[i];
+        for (int i = 0; i < adjListSize; i++)
+        {
+            int numOfDegrees = 0;
+            vertexNode trav = adjList[i];
 
-        //     while (trav.next != NULL)
-        //     {
-        //         numOfDegrees++;
-        //         trav = *trav.next;
-        //     }
+            while (trav.next != NULL)
+            {
+                numOfDegrees++;
+                trav = *trav.next;
+            }
 
-        //     if (numOfDegrees > (degrees.size() - 1))
-        //     {
-        //         degrees.resize(numOfDegrees + 1, 0);
-        //     }
+            if (numOfDegrees > (degrees.size() - 1))
+            {
+                degrees.resize(numOfDegrees + 1, 0);
+            }
 
-        //     degrees[numOfDegrees] += 1;
-        //     // cout << numOfDegrees << endl;
-        //     // cout << degrees[numOfDegrees] << endl;
-        // }
+            degrees[numOfDegrees] += 1;
+            // cout << numOfDegrees << endl;
+            // cout << degrees[numOfDegrees] << endl;
+        }
 
-        // cout << "Threshold Histogram: " << threshold << endl;
+        cout << "Graph Characteristics with Threshold: " << threshold << endl;
+        cout << "Degree Histogram: " << endl;
 
-        // for (int i = 0; i < degrees.size(); i++)
-        // {
-        //     cout << i << ": ";
-        //     for (int j = 0; j < degrees[i]; j++)
-        //     {
-        //         cout << "* ";
-        //     }
-        //     cout << endl;
-        // }
-        // cout << endl;
+        for (int i = 0; i < degrees.size(); i++)
+        {
+            cout << i << ": ";
+            for (int j = 0; j < degrees[i]; j++)
+            {
+                cout << "*";
+            }
+            cout << endl;
+        }
+        cout << endl;
 
         // Step 4: Do a recursive depth-first traversal to compute the number of "trees" and their size.
+        cout << "Connected Components with Sizes" << endl;
         dfs(adjList, adjListSize);
 
         // for (int i = 0; i < adjListSize; i++)
@@ -277,5 +288,7 @@ int main()
         //     cout << "(" << trav->xCoordinate << ", " << trav->yCoordinate << ") : " << trav->color << endl;
         //     trav = trav->next;
         // }
+
+        cout << endl;
     }
 }

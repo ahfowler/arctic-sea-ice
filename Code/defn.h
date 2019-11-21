@@ -15,6 +15,7 @@ struct vertexNode
 {
     int xCoordinate;
     int yCoordinate;
+    bool land;
     int index;
     int color; // 0 = white, 1 = grey, 2 = black
     vertexNode *parent;
