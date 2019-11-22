@@ -6,8 +6,9 @@ using namespace std;
 
 struct cell
 {
-    std::vector<double> readings;
+    std::vector<float> readings;
     float mean;
+    float Sxx;
 };
 
 // Components for building the graph
@@ -18,7 +19,6 @@ struct vertexNode
     bool land;
     int index;
     int color; // 0 = white, 1 = grey, 2 = black
-    vertexNode *parent;
     vertexNode *next;
 };
 

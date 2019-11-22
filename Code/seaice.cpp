@@ -5,6 +5,7 @@
 #include "dfs.h"
 #include <vector>
 #include <cmath>
+#include <limits>
 
 using namespace std;
 
@@ -30,7 +31,7 @@ int main()
         }
     }
 
-    for (int i = 1990; i < 1991; i++)
+    for (int i = 1990; i < 2006; i++)
     {
         year = i;
         for (int j = 1; j < 53; j++)
@@ -109,33 +110,47 @@ int main()
         {
             // Compute the mean of each vertex
             float sum = 0;
-            int numberOfReadings = 0;
+            float numberOfReadings = 0;
 
-            for (int j = 0; j < landmask[index / 63][index % 63].readings.size(); j++)
+            cell *vertexCell = &landmask[index / 63][index % 63];
+
+            for (int j = 0; j < vertexCell->readings.size(); j++)
             {
-                if (landmask[index / 63][index % 63].readings[j] != 157 && landmask[index / 63][index % 63].readings[j] != 168)
+                if (vertexCell->readings[j] != 157 && vertexCell->readings[j] != 168)
                 {
-                    sum += landmask[index / 63][index % 63].readings[j];
+                    sum += vertexCell->readings[j];
                     numberOfReadings++;
                 }
             }
 
             if (numberOfReadings != 0)
             {
-                float mean = sum / numberOfReadings;
-                landmask[index / 63][index % 63].mean = mean;
+                vertexCell->mean = sum / numberOfReadings;
             }
             else
             {
-                landmask[index / 63][index % 63].mean = std::numeric_limits<float>::quiet_NaN();
+                vertexCell->mean = std::numeric_limits<float>::quiet_NaN();
             }
+
+            // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") vertex mean : " << vertexCell.mean << endl;
+            float Sxx = 0;
+
+            for (int i = 0; i < vertexCell->readings.size(); i++)
+            {
+                if (vertexCell->readings[i] != 157 && vertexCell->readings[i] != 168)
+                {                                                                                                       // If it is not missing,
+                    Sxx += (vertexCell->readings[i] - vertexCell->mean) * (vertexCell->readings[i] - vertexCell->mean); // Add to Sxx summation
+                }
+            }
+
+            vertexCell->Sxx = Sxx;
+            //cout << landmask[index / 63][index % 63].Sxx << endl;
 
             // Create vertex cell for adjacency list.
             vertexNode *newVertex = new vertexNode();
             newVertex->xCoordinate = index / 63;
             newVertex->yCoordinate = index % 63;
             newVertex->next = NULL;
-            newVertex->index = index;
 
             if (landmask[index / 63][index % 63].readings[0] == 168)
             {
@@ -153,58 +168,33 @@ int main()
 
         for (int vertex = 0; vertex < adjListSize; vertex++)
         {
-            // Step 1: Compute Sxx
-            cell vertexCell = landmask[vertex / 63][vertex % 63];
+            cell *vertexCell = &landmask[vertex / 63][vertex % 63];
+            float Sxx = vertexCell->Sxx;
+            //cout << "Sxx Stored for " << vertex << ": " << vertexCell->Sxx << endl;
 
-            // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") vertex mean : " << vertexCell.mean << endl;
-
-            if (!isnan(vertexCell.mean))
-            { // This is a valid cell.
-                // cout << "Xmean: " << Xmean << endl;
-                float Sxx = 0;
-
-                for (int i = 0; i < vertexCell.readings.size(); i++)
-                {
-                    if (vertexCell.readings[i] != 157 && vertexCell.readings[i] != 168)
-                    {                                                                                                   // If it is not missing,
-                        Sxx += (vertexCell.readings[i] - vertexCell.mean) * (vertexCell.readings[i] - vertexCell.mean); // Add to Sxx summation
-                    }
-                }
-
-                // cout << "Cell ( " << vertex / 63 << ", " << vertex % 63 << ") Sxx : " << Sxx << endl;
-
+            if (!isnan(vertexCell->mean))
+            {
                 // Find edges in the rest of the graph
                 for (int comparingVertex = vertex + 1; comparingVertex < adjListSize; comparingVertex++)
                 {
                     // Step 2: Compute Syy
-                    cell comparingVertexCell = landmask[comparingVertex / 63][comparingVertex % 63];
+                    cell *comparingVertexCell = &landmask[comparingVertex / 63][comparingVertex % 63];
+                    float Syy = comparingVertexCell->Sxx;
+                    //cout << "Syy Stored for " << comparingVertex << ": " << comparingVertexCell->Sxx << endl;
 
-                    if (!isnan(comparingVertexCell.mean))
+                    if (!isnan(comparingVertexCell->mean))
                     { // This a valid cell to compare to.
-                        // cout << "Ymean: " << Ymean << endl;
-                        float Syy = 0;
-
-                        for (int k = 0; k < comparingVertexCell.readings.size(); k++)
-                        {
-                            if (comparingVertexCell.readings[k] != 157 && comparingVertexCell.readings[k] != 168)
-                            {                                                                                                                                       // If it is not missing,
-                                Syy += (comparingVertexCell.readings[k] - comparingVertexCell.mean) * (comparingVertexCell.readings[k] - comparingVertexCell.mean); // Add to Syy summation
-                            }
-                        }
-
-                        // cout << "Cell ( " << comparingVertex / 63 << ", " << comparingVertex % 63 << ") Syy : " << Syy << endl;
-
                         // Step 3: Compute Sxy
                         float Sxy = 0; // Both are valid cells!
-                        for (int j = 0; j < vertexCell.readings.size(); j++)
+                        for (int j = 0; j < vertexCell->readings.size(); j++)
                         {
-                            if (comparingVertexCell.readings[j] != 157 && comparingVertexCell.readings[j] != 168 && vertexCell.readings[j] != 157 && vertexCell.readings[j] != 168)
-                            {                                                                                                                     // If it is not missing,
-                                Sxy += (vertexCell.readings[j] - vertexCell.mean) * (comparingVertexCell.readings[j] - comparingVertexCell.mean); // Add to Sxy summation
+                            if (comparingVertexCell->readings[j] != 157 && comparingVertexCell->readings[j] != 168 && vertexCell->readings[j] != 157 && vertexCell->readings[j] != 168)
+                            {                                                                                                                         // If it is not missing,
+                                Sxy += (vertexCell->readings[j] - vertexCell->mean) * (comparingVertexCell->readings[j] - comparingVertexCell->mean); // Add to Sxy summation
                             }
                         }
 
-                        // cout << "Sxy : " << Sxy << endl;
+                        //cout << "Sxy : " << Sxy << endl;
 
                         // Step 4: Plug into the formula.
                         float coorelation = Sxy / sqrt(Sxx * Syy);
@@ -247,21 +237,24 @@ int main()
         {
             int numOfDegrees = 0;
             vertexNode trav = adjList[i];
-
-            while (trav.next != NULL)
+            if (!trav.land)
             {
-                numOfDegrees++;
-                trav = *trav.next;
-            }
 
-            if (numOfDegrees > (degrees.size() - 1))
-            {
-                degrees.resize(numOfDegrees + 1, 0);
-            }
+                while (trav.next != NULL)
+                {
+                    numOfDegrees++;
+                    trav = *trav.next;
+                }
 
-            degrees[numOfDegrees] += 1;
-            // cout << numOfDegrees << endl;
-            // cout << degrees[numOfDegrees] << endl;
+                if (numOfDegrees > (degrees.size() - 1))
+                {
+                    degrees.resize(numOfDegrees + 1, 0);
+                }
+
+                degrees[numOfDegrees] += 1;
+                // cout << numOfDegrees << endl;
+                // cout << degrees[numOfDegrees] << endl;
+            }
         }
 
         cout << "Graph Characteristics with Threshold: " << threshold << endl;
@@ -272,8 +265,9 @@ int main()
             cout << i << ": ";
             for (int j = 0; j < degrees[i]; j++)
             {
-                cout << "*";
+                cout << "|";
             }
+            cout << " (" << degrees[i] << ")";
             cout << endl;
         }
         cout << endl;
