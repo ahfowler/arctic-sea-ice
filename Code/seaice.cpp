@@ -39,7 +39,7 @@ int main()
             week = j;
 
             // Create path name for file.
-            pathName = to_string(year);
+            pathName = "CS310_project_subregion/" + to_string(year);
 
             if (week < 10)
             {
@@ -284,5 +284,30 @@ int main()
         // }
 
         cout << endl;
+
+        // Step 5: Compute the clustering coefficient
+        float sum = 0;
+        float size = 0;
+        for (int i = 0; i < adjListSize; i++)
+        {
+            if (!adjList[i].land)
+            {
+                sum += computeCC(i, adjList);
+                size++;
+            }
+        }
+
+        cout << "Clustering Coefficient: " << sum / size << endl;
+        cout << endl;
+
+        // Step 6: Compute the characteristic path length
+
+        // Step 7: Determine if the graph is a small world graph
+
+        // Create a random graph
+
+        // Compute clustering and characteristic path length
+
+        // Is Gr >> Grandom && Gr >= Grandom
     }
 }

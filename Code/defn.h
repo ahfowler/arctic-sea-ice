@@ -1,5 +1,4 @@
 #include <vector>
-
 #include <iostream>
 
 using namespace std;
@@ -87,3 +86,48 @@ void addEdge(vertexNode adjList[], int vertex, int currentVertex)
     //cout << "Just added " << adjList[currentVertex].next->xCoordinate << ", " << adjList[currentVertex].next->yCoordinate << " to " << currentVertex / 63 << ", " << currentVertex % 63 << endl;
     // }
 };
+
+// Clustering Coefficient Functions
+
+float computeCC(int vertex, vertexNode adjList[])
+{
+    vector<int> neighborhood;
+
+    // Compute vertices
+    float vertices = 0;
+    vertexNode *counter = &adjList[vertex];
+    while (counter->next != NULL)
+    {
+        vertices++;
+        neighborhood.push_back(counter->index);
+        counter = counter->next;
+    }
+
+    // Compute edges
+    float edges = 0;
+    for (int i = 0; i < neighborhood.size(); i++)
+    {
+        vertexNode *trav = &adjList[neighborhood[i]];
+        while (trav->next != NULL)
+        {
+            // If their's edge is in the neighborhood
+            if (find(neighborhood.begin(), neighborhood.end(), trav->next->index) != neighborhood.end())
+            {
+                edges++;
+            }
+            trav = trav->next;
+        }
+    }
+
+    //edges = edges - (edges / 2); // Everything is double counted.
+
+    // Compute clustering coefficient
+    if (vertices != 0 && vertices != 1)
+    {
+        return (2 * (edges - (edges / 2))) / (vertices * (vertices - 1));
+    }
+    else
+    {
+        return 0;
+    }
+}
