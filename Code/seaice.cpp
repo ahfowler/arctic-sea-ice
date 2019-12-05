@@ -7,6 +7,8 @@
 #include <cmath>
 #include <limits>
 
+#define inf INT_MAX
+
 using namespace std;
 
 int main()
@@ -231,6 +233,9 @@ int main()
         // }
 
         // Step 3: Compute the degrees of each vertex.
+        float averageDegrees = 0;
+        float numOfVertices = 0;
+
         vector<int> degrees(1, 0);
 
         for (int i = 0; i < adjListSize; i++)
@@ -239,7 +244,7 @@ int main()
             vertexNode trav = adjList[i];
             if (!trav.land)
             {
-
+                numOfVertices++;
                 while (trav.next != NULL)
                 {
                     numOfDegrees++;
@@ -252,13 +257,15 @@ int main()
                 }
 
                 degrees[numOfDegrees] += 1;
+                averageDegrees += numOfDegrees;
                 // cout << numOfDegrees << endl;
                 // cout << degrees[numOfDegrees] << endl;
             }
         }
+        averageDegrees = averageDegrees / numOfVertices; // Quanity of degrees / number of vertices
 
         cout << "Graph Characteristics with Threshold: " << threshold << endl;
-        cout << "Degree Histogram: " << endl;
+        cout << "DEGREE HISTOGRAM: " << endl;
 
         for (int i = 0; i < degrees.size(); i++)
         {
@@ -273,7 +280,7 @@ int main()
         cout << endl;
 
         // Step 4: Do a recursive depth-first traversal to compute the number of "trees" and their size.
-        cout << "Connected Components with Sizes" << endl;
+        cout << "CONNECTED COMPONENTS (WITH SIZES)" << endl;
         dfs(adjList, adjListSize);
 
         // for (int i = 0; i < adjListSize; i++)
@@ -288,6 +295,7 @@ int main()
         // Step 5: Compute the clustering coefficient
         float sum = 0;
         float size = 0;
+        float clusteringCoefficient = 0;
         for (int i = 0; i < adjListSize; i++)
         {
             if (!adjList[i].land)
@@ -297,17 +305,79 @@ int main()
             }
         }
 
+        clusteringCoefficient = sum / size;
+        cout << "COORELATION GRAPH CHARACTERISTICS\n";
         cout << "Clustering Coefficient: " << sum / size << endl;
-        cout << endl;
 
         // Step 6: Compute the characteristic path length
+        int **table = new int *[adjListSize];
+        for (int i = 0; i < adjListSize; ++i)
+        {
+            table[i] = new int[adjListSize];
+        }
+
+        for (int i = 0; i < adjListSize; i++)
+        {
+            for (int j = i; j < adjListSize; j++)
+            {
+                if (i == j)
+                {
+                    table[i][j] = 0;
+                }
+                else
+                {
+                    int value = connected(i, j, adjList);
+                    table[i][j] = value;
+                    table[j][i] = value;
+                }
+            }
+        }
+
+        floydWarshall(table, adjListSize);
+
+        sum = 0;
+        size = 0;
+        float characteristicPathLength = 0;
+
+        for (int i = 0; i < adjListSize; i++)
+        {
+            for (int j = i + 1; j < adjListSize; j++)
+            {
+                // if (table[i][j] == 4000)
+                // {
+                //     cout << "inf" << ' ';
+                // }
+                // else
+                // {
+                //     cout << table[i][j] << ' ';
+                // }
+
+                if (table[i][j] != inf)
+                {
+                    sum += table[i][j];
+                    size++;
+                }
+            }
+        }
+
+        characteristicPathLength = sum / size;
+
+        cout << "Characteristic Path Length: " << characteristicPathLength << endl;
+        cout << endl;
 
         // Step 7: Determine if the graph is a small world graph
 
         // Create a random graph
+        float randomClusteringCoefficient = averageDegrees / numOfVertices;
+        float randomCharacteristicPathLength = log(numOfVertices) / log(averageDegrees);
 
-        // Compute clustering and characteristic path length
+        cout << "RANDOM GRAPH CHARACTERISTICS\n";
+        cout << "Clustering Cofficient: " << randomClusteringCoefficient << endl;
+        cout << "Characteristic Path Length: " << randomCharacteristicPathLength << endl
+             << endl;
+        cout << "---------------------------------------------------------------------------------------------------" << endl
+             << endl;
 
-        // Is Gr >> Grandom && Gr >= Grandom
+        // Is Gr >> Grandom && Gr >= Grandom?
     }
 }

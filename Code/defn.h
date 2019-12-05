@@ -1,5 +1,8 @@
 #include <vector>
 #include <iostream>
+#include <limits.h>
+
+#define inf INT_MAX
 
 using namespace std;
 
@@ -124,10 +127,50 @@ float computeCC(int vertex, vertexNode adjList[])
     // Compute clustering coefficient
     if (vertices != 0 && vertices != 1)
     {
-        return (2 * (edges - (edges / 2))) / (vertices * (vertices - 1));
+        return (edges) / (vertices * (vertices - 1));
     }
     else
     {
         return 0;
+    }
+}
+
+// Computing Characteristic Path Length
+int connected(int nodeOne, int nodeTwo, vertexNode adjList[])
+{
+    if (adjList[nodeOne].land || adjList[nodeTwo].land)
+    {
+        return inf;
+    }
+    else
+    {
+        vertexNode *trav = &adjList[nodeOne];
+        while (trav->next != NULL)
+        {
+            if (trav->next->index == nodeTwo)
+            {
+                return 1;
+            }
+            trav = trav->next;
+        }
+        return inf;
+    }
+}
+
+void floydWarshall(int **table, int adjListSize)
+{
+    for (int k = 0; k < adjListSize; k++)
+    {
+        for (int i = 0; i < adjListSize; i++)
+        {
+            for (int j = i + 1; j < adjListSize; j++)
+            {
+                if (table[i][k] != inf &&
+                    table[k][j] != inf && table[i][k] + table[k][j] < table[i][j])
+                {
+                    table[i][j] = table[i][k] + table[k][j];
+                }
+            }
+        }
     }
 }
